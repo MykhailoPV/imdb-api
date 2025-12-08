@@ -1,0 +1,22 @@
+version: "3.0"
+services:
+  imdb-api:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: imdb-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - NODE_ENV=production
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+    networks:
+      - IMDB-network
+
+networks:
+  IMDB-network:
+    driver: bridge
