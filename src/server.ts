@@ -1,13 +1,43 @@
-const https = require("https");
-const express = require("express");
-const swaggerDocs = require("./swagger");
-const rateLimiter = require("./middlewares/rateLimiter");
+import express from "express";
+import swaggerDocs from "./swagger";
+import rateLimiter from "./middlewares/rateLimiter";
 
 const API_KEY = process.env.API_KEY;
 const PORT = 3001;
 
+interface IMovie {
+  Title: string;
+  Year: string;
+  Rated: string;
+  Released: string;
+  Runtime: string;
+  Genre: string;
+  Director: string;
+  Writer: string;
+  Actors: string;
+  Plot: string;
+  Language: string;
+  Country: string;
+  Awards: string;
+  Poster: string;
+  Ratings: {
+    Source: string;
+    Value: string;
+  }[];
+  Metascore: string;
+  imdbRating: string;
+  imdbVotes: string;
+  imdbID: string;
+  Type: string;
+  DVD: string;
+  BoxOffice: string;
+  Production: string;
+  Website: string;
+  Response: "True" | "False";
+}
 
-let favoritesMovies = [];
+
+let favoritesMovies: IMovie[] = [];
 
 const app = express();
 app.use(express.json());
@@ -56,7 +86,7 @@ app.get("/imdbSearchByName", async (req, res) => {
 
   try {
     const response = await fetch(
-      `https://api.collectapi.com/imdb/imdbSearchByName?query=${encodeURIComponent(query)}`,
+      `https://api.collectapi.com/imdb/imdbSearchByName?query=${encodeURIComponent(query as string)}`,
       {
         method: "GET",
         headers: {
@@ -117,7 +147,7 @@ app.get("/imdbSearchById", async (req, res) => {
 
   try {
     const response = await fetch(
-      `https://api.collectapi.com/imdb/imdbSearchById?movieId=${encodeURIComponent(id)}`,
+      `https://api.collectapi.com/imdb/imdbSearchById?movieId=${encodeURIComponent(id as string)}`,
       {
         method: "GET",
         headers: {
@@ -178,7 +208,7 @@ app.post("/addFavoritesMoviesById", async (req, res) => {
 
   try {
     const response = await fetch(
-      `https://api.collectapi.com/imdb/imdbSearchById?movieId=${encodeURIComponent(id)}`,
+      `https://api.collectapi.com/imdb/imdbSearchById?movieId=${encodeURIComponent(id as string)}`,
       {
         method: "GET",
         headers: {
@@ -235,13 +265,13 @@ app.delete("/deleteFromFavoritesMoviesById", async (req, res) => {
     return res.status(400).json({ error: "Missing id parameter" });
   }
 
-  const movie = favoritesMovies.find((movie) => movie.id === id);
+  const movie = favoritesMovies.find((movie) => movie.imdbID === id);
 
-  if (!!movie) {
+  if (!movie) {
     return res.status(404).json({ error: "Movie not found" });
   }
 
-  favoritesMovies = favoritesMovies.filter((movie) => movie.id === id);
+  favoritesMovies = favoritesMovies.filter((movie) => movie.imdbID === id);
 
   res.json(favoritesMovies);
 });
