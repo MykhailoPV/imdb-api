@@ -1,12 +1,12 @@
-import express from "express";
-import swaggerDocs from "./swagger";
-import rateLimiter from "./middlewares/rateLimiter";
-import { db } from "../config/firebase";
+import express from 'express';
+import { db } from '../config/firebase';
+import swaggerDocs from './swagger';
+import rateLimiter from './middlewares/rateLimiter';
 
 const API_KEY = process.env.API_KEY;
 const PORT = 3001;
 
-const DB_COLLECTION = db.collection("favouriteMovies");
+const DB_COLLECTION = db.collection('favouriteMovies');
 
 interface IMovie {
   result: {
@@ -37,13 +37,16 @@ interface IMovie {
     BoxOffice: string;
     Production: string;
     Website: string;
-    Response: "True" | "False";
-  }
+    Response: 'True' | 'False';
+  };
 }
 
 const app = express();
+
 app.use(express.json());
-app.use(rateLimiter({ windowInSeconds: 60, maxRequests: 100 }));
+app.use(rateLimiter({
+  windowInSeconds: 60, maxRequests: 100,
+}));
 
 /**
  * @swagger
@@ -73,36 +76,36 @@ app.use(rateLimiter({ windowInSeconds: 60, maxRequests: 100 }));
  *       500:
  *         description: Failed to fetch IMDB data
  */
-app.get("/imdbSearchByName", async (req, res) => {
+app.get('/imdbSearchByName', async (req, res) => {
   const query = req.query.query;
 
   if (!query) {
-    return res.status(400).json({ error: "Missing query parameter" });
+    return res.status(400).json({ error: 'Missing query parameter' });
   }
 
   const apiKey = req.headers.authorization || API_KEY;
 
   if (!apiKey) {
-    return res.status(401).json({ error: "Missing API key. Please provide authorization header." });
+    return res.status(401).json({ error: 'Missing API key. Please provide authorization header.' });
   }
 
   try {
     const response = await fetch(
       `https://api.collectapi.com/imdb/imdbSearchByName?query=${encodeURIComponent(query as string)}`,
       {
-        method: "GET",
+        method: 'GET',
         headers: {
-          "content-type": "application/json",
+          'content-type': 'application/json',
           authorization: `apikey ${apiKey}`,
         },
-      }
+      },
     );
 
     const data = await response.json();
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch IMDB data" });
+    res.status(500).json({ error: error || 'Failed to fetch IMDB data' });
   }
 });
 
@@ -134,36 +137,36 @@ app.get("/imdbSearchByName", async (req, res) => {
  *       500:
  *         description: Failed to fetch IMDB data
  */
-app.get("/imdbSearchById", async (req, res) => {
+app.get('/imdbSearchById', async (req, res) => {
   const id = req.query.id;
 
   if (!id) {
-    return res.status(400).json({ error: "Missing id parameter" });
+    return res.status(400).json({ error: 'Missing id parameter' });
   }
 
   const apiKey = req.headers.authorization || API_KEY;
 
   if (!apiKey) {
-    return res.status(401).json({ error: "Missing API key. Please provide authorization header." });
+    return res.status(401).json({ error: 'Missing API key. Please provide authorization header.' });
   }
 
   try {
     const response = await fetch(
       `https://api.collectapi.com/imdb/imdbSearchById?movieId=${encodeURIComponent(id as string)}`,
       {
-        method: "GET",
+        method: 'GET',
         headers: {
-          "content-type": "application/json",
+          'content-type': 'application/json',
           authorization: `apikey ${apiKey}`,
         },
-      }
+      },
     );
 
     const data = await response.json();
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch IMDB data" });
+    res.status(500).json({ error: error || 'Failed to fetch IMDB data' });
   }
 });
 
@@ -195,17 +198,17 @@ app.get("/imdbSearchById", async (req, res) => {
  *       500:
  *         description: Failed to fetch IMDB data
  */
-app.post("/addFavoritesMoviesById", async (req, res) => {
+app.post('/addFavoritesMoviesById', async (req, res) => {
   const id = req.query.id;
 
   if (!id) {
-    return res.status(400).json({ error: "Missing id parameter" });
+    return res.status(400).json({ error: 'Missing id parameter' });
   }
 
   const apiKey = req.headers.authorization || API_KEY;
 
   if (!apiKey) {
-    return res.status(401).json({ error: "Missing API key. Please provide authorization header." });
+    return res.status(401).json({ error: 'Missing API key. Please provide authorization header.' });
   }
 
   let response;
@@ -214,15 +217,15 @@ app.post("/addFavoritesMoviesById", async (req, res) => {
     response = await fetch(
       `https://api.collectapi.com/imdb/imdbSearchById?movieId=${encodeURIComponent(id as string)}`,
       {
-        method: "GET",
+        method: 'GET',
         headers: {
-          "content-type": "application/json",
+          'content-type': 'application/json',
           authorization: `apikey ${apiKey}`,
         },
-      }
+      },
     );
   } catch (error) {
-    return res.status(500).json({ error: "Failed to fetch IMDB data" });
+    return res.status(500).json({ error: error || 'Failed to fetch IMDB data' });
   }
 
   try {
@@ -232,7 +235,7 @@ app.post("/addFavoritesMoviesById", async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    return res.status(500).json({ error: 'Failed to add favorite movie' });
+    return res.status(500).json({ error: error || 'Failed to add favorite movie' });
   }
 });
 
@@ -249,7 +252,7 @@ app.post("/addFavoritesMoviesById", async (req, res) => {
  *             schema:
  *               type: object
  */
-app.get("/getFavoritesMovies", async (req, res) => {
+app.get('/getFavoritesMovies', async (req, res) => {
   const favoriteMoviesSnapshot = await DB_COLLECTION.get();
 
   const favoriteMovies = favoriteMoviesSnapshot.docs.map((favoriteMovie) => ({
@@ -276,22 +279,22 @@ app.get("/getFavoritesMovies", async (req, res) => {
  *       200:
  *         description: Movie deleted successfully
  */
-app.delete("/deleteFromFavoritesMoviesById", async (req, res) => {
+app.delete('/deleteFromFavoritesMoviesById', async (req, res) => {
   const id = req.query.id;
 
   if (!id) {
-    return res.status(400).json({ error: "Missing id parameter" });
+    return res.status(400).json({ error: 'Missing id parameter' });
   }
 
   const movieSnapshot = await DB_COLLECTION.doc(id as string).get();
 
   if (!movieSnapshot.exists) {
-    return res.status(404).json({ error: "Movie not found" });
+    return res.status(404).json({ error: 'Movie not found' });
   }
 
   DB_COLLECTION.doc(id as string).delete();
 
-  res.json({ message: "Movie deleted successfully" });
+  res.json({ message: 'Movie deleted successfully' });
 });
 
 swaggerDocs(app);

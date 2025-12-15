@@ -1,4 +1,6 @@
-import { NextFunction, Request, Response } from "express";
+import {
+  NextFunction, Request, Response,
+} from 'express';
 
 interface IRateLimiterOptions {
   windowInSeconds: number;
@@ -18,15 +20,16 @@ const rateLimiter = ({ windowInSeconds, maxRequests }: IRateLimiterOptions) => {
 
     const userRequests = requests.get(ip) ?? [];
     const recent = userRequests.filter((time) => now - time * 1000 < windowInSeconds);
+
     requests.set(ip, recent);
-    
+
     if (recent.length >= maxRequests) {
-      return res.status(429).json("Too many requests");
+      return res.status(429).json('Too many requests');
     }
 
     recent.push(now);
     next();
-  }
-}
+  };
+};
 
 export default rateLimiter;
