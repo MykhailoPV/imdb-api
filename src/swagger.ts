@@ -6,7 +6,7 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Book API",
+      title: "IMDB API",
       version: "1.0.0",
     },
     components: {
@@ -20,10 +20,10 @@ const options = {
       },
     },
   },
-  apis: ["./server.ts"],
+  apis: ["./src/server.ts"],
 };
 
-const swaggerSpec = swaggerJsdoc(options);
+const swaggerSpec = swaggerJsdoc(options as Parameters<typeof swaggerJsdoc>[0]);
 
 function swaggerDocs(app: Express) {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));

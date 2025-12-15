@@ -1,43 +1,45 @@
 import express from "express";
 import swaggerDocs from "./swagger";
 import rateLimiter from "./middlewares/rateLimiter";
+import { db } from "../config/firebase";
 
 const API_KEY = process.env.API_KEY;
 const PORT = 3001;
 
+const DB_COLLECTION = db.collection("favouriteMovies");
+
 interface IMovie {
-  Title: string;
-  Year: string;
-  Rated: string;
-  Released: string;
-  Runtime: string;
-  Genre: string;
-  Director: string;
-  Writer: string;
-  Actors: string;
-  Plot: string;
-  Language: string;
-  Country: string;
-  Awards: string;
-  Poster: string;
-  Ratings: {
-    Source: string;
-    Value: string;
-  }[];
-  Metascore: string;
-  imdbRating: string;
-  imdbVotes: string;
-  imdbID: string;
-  Type: string;
-  DVD: string;
-  BoxOffice: string;
-  Production: string;
-  Website: string;
-  Response: "True" | "False";
+  result: {
+    Title: string;
+    Year: string;
+    Rated: string;
+    Released: string;
+    Runtime: string;
+    Genre: string;
+    Director: string;
+    Writer: string;
+    Actors: string;
+    Plot: string;
+    Language: string;
+    Country: string;
+    Awards: string;
+    Poster: string;
+    Ratings: {
+      Source: string;
+      Value: string;
+    }[];
+    Metascore: string;
+    imdbRating: string;
+    imdbVotes: string;
+    imdbID: string;
+    Type: string;
+    DVD: string;
+    BoxOffice: string;
+    Production: string;
+    Website: string;
+    Response: "True" | "False";
+  }
 }
-
-
-let favoritesMovies: IMovie[] = [];
 
 const app = express();
 app.use(express.json());
@@ -206,8 +208,10 @@ app.post("/addFavoritesMoviesById", async (req, res) => {
     return res.status(401).json({ error: "Missing API key. Please provide authorization header." });
   }
 
+  let response;
+
   try {
-    const response = await fetch(
+    response = await fetch(
       `https://api.collectapi.com/imdb/imdbSearchById?movieId=${encodeURIComponent(id as string)}`,
       {
         method: "GET",
@@ -217,14 +221,18 @@ app.post("/addFavoritesMoviesById", async (req, res) => {
         },
       }
     );
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to fetch IMDB data" });
+  }
 
-    const data = await response.json();
+  try {
+    const data: IMovie = await response.json();
 
-    favoritesMovies.push(data);
+    await DB_COLLECTION.doc(data.result.imdbID).set(data);
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch IMDB data" });
+    return res.status(500).json({ error: 'Failed to add favorite movie' });
   }
 });
 
@@ -242,7 +250,14 @@ app.post("/addFavoritesMoviesById", async (req, res) => {
  *               type: object
  */
 app.get("/getFavoritesMovies", async (req, res) => {
-  res.json(favoritesMovies);
+  const favoriteMoviesSnapshot = await DB_COLLECTION.get();
+
+  const favoriteMovies = favoriteMoviesSnapshot.docs.map((favoriteMovie) => ({
+    id: favoriteMovie.id,
+    ...favoriteMovie.data(),
+  }));
+
+  res.status(200).json(favoriteMovies);
 });
 
 /**
@@ -257,6 +272,9 @@ app.get("/getFavoritesMovies", async (req, res) => {
  *         schema:
  *           type: string
  *         description: Movie id to delete
+ *     responses:
+ *       200:
+ *         description: Movie deleted successfully
  */
 app.delete("/deleteFromFavoritesMoviesById", async (req, res) => {
   const id = req.query.id;
@@ -265,15 +283,15 @@ app.delete("/deleteFromFavoritesMoviesById", async (req, res) => {
     return res.status(400).json({ error: "Missing id parameter" });
   }
 
-  const movie = favoritesMovies.find((movie) => movie.imdbID === id);
+  const movieSnapshot = await DB_COLLECTION.doc(id as string).get();
 
-  if (!movie) {
+  if (!movieSnapshot.exists) {
     return res.status(404).json({ error: "Movie not found" });
   }
 
-  favoritesMovies = favoritesMovies.filter((movie) => movie.imdbID === id);
+  DB_COLLECTION.doc(id as string).delete();
 
-  res.json(favoritesMovies);
+  res.json({ message: "Movie deleted successfully" });
 });
 
 swaggerDocs(app);
